@@ -6,29 +6,67 @@ class set
 {
 private:
 	node<type>* root;
-	size_t height(node<type>* rt = root)
+
+	size_t height(node<type>* rt)
 	{
 		if (!rt)
 			return 0;
-		else if (!rt->_left && !rt->_right)
-		{
-			return 1;
-		}
-		else if (height(rt->_left) > height(rt->_right))
-			return height(rt->_left) + 1;
 		else
-			return height(rt->_right) + 1;
+			return rt->_height;
 	}
-	void updateHeight(node<type>* rt)
+
+	int balanceFactor(node<type>* rt)
 	{
-		if (rt)
-		{
-			rt->_height = height(rt);
-			updateHeight(rt->_left);
-			updateHeight(rt->_right);
-		}
+		return height(rt->_right) - height(rt->_left);
+	}
+
+	void fixHeight(node<type>* rt)
+	{
+		size_t hl = height(rt->_left);
+		size_t hr = height(rt->_right);
+
+		if (hl > hr)
+			rt->_height = hl + 1;
 		else
-			return;
+			rt->_height = hr + 1;
+	}
+
+	node<type>* rotateRight(node<type>* rt)
+	{
+		node<type>* temp = rt->_left;
+		rt->_left = temp->_right;
+		temp->_right = rt;
+		fixHeight(rt);
+		fixHeight(temp);
+		return temp;
+	}
+	node<type>* rotateLeft(node<type>* rt)
+	{
+		node<type>* temp = rt->_right;
+		rt->_right = temp->_left;
+		temp->_left = rt;
+		fixHeight(rt);
+		fixHeight(temp);
+		return temp;
+	}
+	node<type>* balance(node<type>* rt)
+	{
+		fixHeight(rt);
+
+		if (balanceFactor(rt) > 1)
+		{
+			if (balanceFactor(rt->_right) < 0)
+				rt->_right = rotateRight(rt->_right);
+			return rotateLeft(rt);
+		}
+		if (balanceFactor(rt) < -1)
+		{
+			if (balanceFactor(rt->_left) > 0)
+				rt->_left = rotateLeft(rt->_left);
+			return rotateRight(rt);
+		}
+
+		return rt;
 	}
 	void copy(node<type>* copy_root)
 	{
@@ -51,78 +89,64 @@ private:
 		else
 			return;
 	}
-	node<type>* minimum(node<type>* rt)
+
+	node<type>* findMin(node<type>* rt)
+	{
+		if (rt->_left)
+			return findMin(rt->_left);
+		else
+			return rt;
+	}
+	node<type>* delMin(node<type>* rt)
 	{
 		if (!rt->_left)
-			return rt;
-		return minimum(rt->_left);
-	}
-	bool delElem(node<type>* rt, const type& data)
+			return rt->_right;
+
+		rt->_left = delMin(rt->_left);
+		return balance(rt);
+	}	
+	node<type>* del(node<type>* rt, const type& data)
 	{
-		node<type>* tmp = rt;
-		node<type>* parent = nullptr;
-		while (tmp)
+		if (!rt)
+			return rt;
+		else
 		{
-			if (tmp->_data > data)
+			if (data < rt->_data)
 			{
-				parent = tmp;
-				tmp = tmp->_left;
+				rt->_left = del(rt->_left, data);
 			}
-				
-			else if (tmp->_data < data)
+			if (data > rt->_data)
 			{
-				parent = tmp;
-				tmp = tmp->_right;
+				rt->_right = del(rt->_right, data);
 			}
-				
-			else//found
+			else
 			{
-				if (!tmp->_right && !tmp->_left)
-				{
-					if (parent->_data > tmp->_data)
-					{
-						parent->_left = nullptr;
-						delete tmp;
-						tmp = nullptr;
-					}
-					else
-					{
-						parent->_right = nullptr;
-						delete tmp;
-						tmp = nullptr;
-					}
+				node<type>* templ = rt->_left;
+				node<type>* tempr = rt->_right;
+				delete rt;
+				if (!tempr)
+					return templ;
+				node<type>* min = findMin(tempr);
+				min->_right = delMin(tempr);
+				min->_left = templ;
+				return balance(min);
+			}
 
-				}
-				else if (tmp->_right && !tmp->_left)
-				{
-					tmp->_data = tmp->_right->_data;
-					tmp->_left = tmp->_right->_left;
-					tmp->_right = tmp->_right->_right;
-					delete tmp->_right;
-					tmp->_right = nullptr;
-				}
-				else if (!tmp->_right && tmp->_left)
-				{
-					tmp->_data = tmp->_left->_data;
-					tmp->_right = tmp->_left->_right;
-					tmp->_left = tmp->_left->_left;
-					delete tmp->_left;
-					tmp->_left = nullptr;
-				}
-				else
-				{
-					node<type>* minElem = minimum(tmp->_right);
-					tmp->_data = minElem->_data;
-					tmp->_right = minElem->_right;
-					delete minElem;
-					minElem = nullptr;
-				}
-
-				return 1;
-			}
+			return balance(rt);
 		}
-		return 0;
 	}
+
+	node<type>* addTo(node<type>* rt, const type& data)
+	{
+		if (!rt)
+			rt = new node<type>(data);
+		else if (data < rt->_data)
+			rt->_left = addTo(rt->_left, data);
+		else if (data > rt->_data)
+			rt->_right = addTo(rt->_right, data);
+		return balance(rt);
+	}
+
 public:
 	set():root(nullptr) { }
 	set(const set<type>& copySet)
@@ -131,11 +155,6 @@ public:
 
 		if (copySet.root)
 			copy(copySet.root);
-	}
-
-	bool erase(const type& data)
-	{
-		return delElem(root, data);
 	}
 
 	void print() const
@@ -160,44 +179,18 @@ public:
 
 	bool insert(const type& data)
 	{
-		if (!root)
-		{
-			root = new node<type>(data);
+		root = addTo(root, data);
+		if (root)
 			return 1;
-		}
-
-		node<type>* checkpoint = root;
-
-		while (checkpoint)
-		{
-			if (data == checkpoint->_data)
-				return 0;
-			else
-			{
-				if (data < checkpoint->_data)
-				{
-					if (checkpoint->_left)
-						checkpoint = checkpoint->_left;
-					else
-					{
-						checkpoint->_left = new node<type>(data);
-						break;
-					}
-				}
-				else if (data > checkpoint->_data)
-				{
-					if (checkpoint->_right)
-						checkpoint = checkpoint->_right;
-					else
-					{
-						checkpoint->_right = new node<type>(data);
-						break;
-					}
-				}
-			}
-		}
-		updateHeight(root);
-		return 1;
+		else return 0;
 	}
 
+	bool erase(const type& data)
+	{
+		root = del(root, data);
+		if (root)
+			return 1;
+		else
+			return 0;
+	}
 };

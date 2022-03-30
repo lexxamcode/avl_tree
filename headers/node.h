@@ -23,6 +23,7 @@ public:
 			_data = copy_node._data;
 			_left = nullptr;
 			_right = nullptr;
+			_height = copy_node._height;
 		}
 		_height = 1;
 		return *this;
