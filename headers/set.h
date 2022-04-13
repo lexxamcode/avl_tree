@@ -115,7 +115,7 @@ private:
 			{
 				rt->_left = del(rt->_left, data);
 			}
-			if (data > rt->_data)
+			else if (data > rt->_data)
 			{
 				rt->_right = del(rt->_right, data);
 			}
