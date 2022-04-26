@@ -1,5 +1,6 @@
 #pragma once
 #include "node.h"
+#include <iostream>
 
 template <typename type>
 class set
@@ -29,6 +30,19 @@ private:
 			rt->_height = hl + 1;
 		else
 			rt->_height = hr + 1;
+	}
+	
+	void print_Tree(node<type>* p, int level) const
+	{
+		if (p)
+		{
+			print_Tree(p->_right, level + 1);
+			for (int i = 0; i < level; i++) 
+				std::cout << "   ";
+			std::cout << p->_data << std::endl;
+			
+			print_Tree(p->_left, level + 1);
+		}
 	}
 
 	node<type>* rotateRight(node<type>* rt)
@@ -80,14 +94,7 @@ private:
 
 	void straightPrint(node<type>* rt) const
 	{
-		if (rt)
-		{
-			std::cout << rt->_data << " ";
-			straightPrint(rt->_left);
-			straightPrint(rt->_right);
-		}
-		else
-			return;
+		print_Tree(rt, 0);
 	}
 
 	node<type>* findMin(node<type>* rt)
@@ -167,14 +174,13 @@ public:
 		node<type>* tmp = root;
 		while (tmp)
 		{
-			if (tmp->_data > data)
+			if (data < tmp->_data)
 				tmp = tmp->_left;
-			else if (tmp->_data < data)
+			if (data > tmp->_data)
 				tmp = tmp->_right;
-			else
-				return 1;
+			else return true;
 		}
-		return 0;
+		return false;
 	}
 
 	bool insert(const type& data)
